@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>RPC Web - Sistem Terdistribusi</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f4f4f9; color: #333; }
+        .container { max-width: 500px; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { color: #007bff; margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-container { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; flex: 1; min-width: 100px; }
+        button.green { background: #28a745; }
+        button.orange { background: #ffc107; color: #000; }
+        button:hover { opacity: 0.85; }
+        .result { margin-top: 20px; background: #e9ecef; padding: 12px; border-radius: 4px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Kalkulator & RPC Web</h2>
+        
+        <div class="form-group">
+            <label>Nilai A / Teks:</label>
+            <input type="text" id="inputA" placeholder="Masukkan angka atau teks...">
+        </div>
+        
+        <div class="form-group">
+            <label>Nilai B (Opsional untuk matematika):</label>
+            <input type="number" id="inputB" placeholder="Masukkan angka kedua...">
+        </div>
+
+        <div class="btn-container">
+            <button onclick="panggilRPC('tambah')">Tambah (+)</button>
+            <button onclick="panggilRPC('kali')" class="green">Kali (×)</button>
+            <button onclick="panggilRPC('pangkat')" class="orange">Pangkat (^)</button>
+            <button onclick="panggilRPC('balik-teks')">Balik Teks</button>
+        </div>
+
+        <div class="result" id="hasil">Hasil dari Server: -</div>
+    </div>
+
+    <script>
+        async function panggilRPC(endpoint) {
+            let valA = document.getElementById('inputA').value;
+            let valB = document.getElementById('inputB').value;
+
+            if (!valA) {
+                alert("Nilai A / Teks tidak boleh kosong!");
+                return;
+            }
+
+            // Ganti IP di bawah ini dengan IP Laptop Server saat uji coba di 2 device
+            let serverIP = "10.133.101.179"; 
+            let port = "8000";
+            let url = `http://${serverIP}:${port}/api/${endpoint}`;
+
+            let bodyData = {};
+            if (endpoint === 'balik-teks') {
+                bodyData = { teks: valA };
+            } else {
+                bodyData = { a: parseFloat(valA), b: parseFloat(valB || 0) };
+            }
+
+            try {
+                let response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bodyData)
+                });
+
+                let data = await response.json();
+                document.getElementById('hasil').innerText = "Hasil dari Server: " + data.hasil;
+            } catch (error) {
+                alert("Gagal terhubung ke backend server!");
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
