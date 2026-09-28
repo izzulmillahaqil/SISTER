@@ -1,12 +1,9 @@
 # backend/main.py
-
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Union
-import server_logic
+from typing import List
 
-app = FastAPI(title="RPC Web Service - Sistem Terdistribusi")
+app = FastAPI(title="RPC & Real-time Chat Web Service")
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,36 +13,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Model untuk input angka (Math)
-class MathRequest(BaseModel):
-    a: float
-    b: float
+# Menyimpan daftar koneksi perangkat (client) yang sedang terhubung
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
 
-# Model untuk input teks
-class TextRequest(BaseModel):
-    teks: str
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
 
-# Model untuk input list
-class ListRequest(BaseModel):
-    item: Union[str, int]
-    data_list: list
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
 
-@app.post("/api/tambah")
-def rpc_tambah(req: MathRequest):
-    return {"hasil": server_logic.tambah(req.a, req.b)}
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
 
-@app.post("/api/kali")
-def rpc_kali(req: MathRequest):
-    return {"hasil": server_logic.kali(req.a, req.b)}
+manager = ConnectionManager()
 
-@app.post("/api/pangkat")
-def rpc_pangkat(req: MathRequest):
-    return {"hasil": server_logic.pangkat(req.a, req.b)}
-
-@app.post("/api/balik-teks")
-def rpc_balik_teks(req: TextRequest):
-    return {"hasil": server_logic.balik_teks(req.teks)}
-
-@app.post("/api/append-data")
-def rpc_append(req: ListRequest):
-    return {"hasil": server_logic.append_data(req.item, req.data_list)}
+@app.websocket("/ws/chat")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Menerima pesan dari satu device
+            data = await websocket.receive_text()
+            # Menyebarkan (broadcast) pesan tersebut ke SEMUA device yang terhubung
+            await manager.broadcast(data)
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        await manager.broadcast("Server: Seseorang telah meninggalkan chat.")

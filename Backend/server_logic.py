@@ -39,3 +39,15 @@ def cari_max(data_list):
     if isinstance(data_list, list) and len(data_list) > 0:
         return max(data_list)
     return "Error: List kosong atau tidak valid!"   
+
+def proses_chat(pesan: str):
+    pesan_lower = pesan.lower()
+    
+    # Respon otomatis sederhana dari server (bisa jadi bot / pantulan pesan)
+    if "halo" in pesan_lower:
+        return "Halo juga dari Server RPC! Ada yang bisa dibantu?"
+    elif "jam" in pesan_lower:
+        import datetime
+        return f"Waktu di server saat ini: {datetime.datetime.now().strftime('%H:%M:%S')}"
+    else:
+        return f"Server menerima pesanmu: '{pesan}'"
